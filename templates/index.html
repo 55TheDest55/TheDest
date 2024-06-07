@@ -1,0 +1,185 @@
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игра "Лотерея"</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: url('{{ url_for('static', filename='Phon.jpg') }}') no-repeat center center fixed;
+            background-size: cover;
+        }
+        #score {
+            position: absolute;
+            top: 10%;
+            right: 10%;
+            font-size: 24px;
+            color: white;
+            transition: top 1s ease; /* Добавляем переход для плавного изменения позиции */
+        }
+        #slot-machine-btn {
+            position: absolute;
+            bottom: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: url('{{ url_for('static', filename='Avtomat.png') }}') no-repeat center center;
+            background-size: contain;
+            width: 200px;
+            height: 200px;
+            border: none;
+            cursor: pointer;
+        }
+        .slot-container {
+            position: absolute;
+            top: 40%;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+        }
+        .slot {
+            width: 200px;
+            height: 200px;
+            background: url('{{ url_for('static', filename='yacheyka.png') }}') no-repeat center center;
+            background-size: contain;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .slot-image {
+            width: 60%;
+            height: 60%;
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        #sound-btn-container {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .sound-btn {
+            background-color: rgba(255, 255, 255, 0.7);
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        /* Анимация появления надписи "ПОБЕДА" */
+        @keyframes victoryText {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        .victory {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 98px;
+            color: black;
+            animation: victoryText 3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Счёт: 1000</div>
+    <button id="slot-machine-btn" onclick="spin()">Spin</button>
+    <div id="sound-btn-container">
+        <button id="background-sound-btn" class="sound-btn" onclick="toggleBackgroundSound()">Выключить фон</button>
+        <button id="game-sound-btn" class="sound-btn" onclick="toggleGameSound()">Выключить звуки игры</button>
+    </div>
+    <div class="slot-container">
+        <div id="slot1" class="slot">
+            <div id="slot-image1" class="slot-image"></div>
+        </div>
+        <div id="slot2" class="slot">
+            <div id="slot-image2" class="slot-image"></div>
+        </div>
+        <div id="slot3" class="slot">
+            <div id="slot-image3" class="slot-image"></div>
+        </div>
+    </div>
+    <!-- Элемент для отображения надписи "ПОБЕДА" -->
+    <div id="victory-text" class="victory"></div>
+    <audio id="win-sound" src="{{ url_for('static', filename='win-sound.mp3') }}"></audio>
+    <audio id="lose-sound" src="{{ url_for('static', filename='lose-sound.mp3') }}"></audio>
+    <audio id="background-music" src="{{ url_for('static', filename='background-music.mp3') }}" loop></audio>
+    <script>
+        let score = 1000;
+        let isBackgroundSoundOn = true;
+        let isGameSoundOn = true;
+
+        async function spin() {
+            const winSound = document.getElementById('win-sound');
+            const loseSound = document.getElementById('lose-sound');
+
+            const response = await fetch('/spin');
+            const data = await response.json();
+
+            setTimeout(() => {
+                document.getElementById("slot-image1").style.backgroundImage = "url('/static/" + data.images[0] + "')";
+                document.getElementById("slot-image2").style.backgroundImage = "url('/static/" + data.images[1] + "')";
+                document.getElementById("slot-image3").style.backgroundImage = "url('/static/" + data.images[2] + "')";
+
+                const pointsEarned = data.points;
+                score += pointsEarned;
+                document.getElementById("score").innerText = "Счёт: " + score;
+
+                if (pointsEarned > 0 && isGameSoundOn) {
+                    winSound.play();
+                } else if (pointsEarned < 0 && isGameSoundOn) {
+                    loseSound.play();
+                }
+
+                if (score >= 10000) {
+                    showVictoryText();
+                }
+            }, 1000);
+        }
+
+        function showVictoryText() {
+            const victoryText = document.getElementById('victory-text');
+            victoryText.innerText = "ПОБЕДА";
+        }
+
+        function toggleBackgroundSound() {
+            const backgroundMusic = document.getElementById('background-music');
+            const backgroundSoundBtn = document.getElementById('background-sound-btn');
+
+                        if (isBackgroundSoundOn) {
+                            backgroundMusic.pause();
+                            backgroundSoundBtn.innerText = "Включить фон";
+                        } else {
+                            backgroundMusic.play();
+                            backgroundSoundBtn.innerText = "Выключить фон";
+                        }
+                        isBackgroundSoundOn = !isBackgroundSoundOn;
+                    }
+
+                    function toggleGameSound() {
+                        const gameSoundBtn = document.getElementById('game-sound-btn');
+                        const winSound = document.getElementById('win-sound');
+                        const loseSound = document.getElementById('lose-sound');
+
+                        if (isGameSoundOn) {
+                            winSound.muted = true;
+                            loseSound.muted = true;
+                            gameSoundBtn.innerText = "Включить звуки игры";
+                        } else {
+                            winSound.muted = false;
+                            loseSound.muted = false;
+                            gameSoundBtn.innerText = "Выключить звуки игры";
+                        }
+                        isGameSoundOn = !isGameSoundOn;
+                    }
+                </script>
+            </body>
+            </html>
